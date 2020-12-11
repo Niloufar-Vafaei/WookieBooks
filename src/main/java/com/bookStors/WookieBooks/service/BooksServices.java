@@ -1,5 +1,7 @@
 package com.bookStors.WookieBooks.service;
 
+import com.bookStors.WookieBooks.exception.FileNotFoundException;
+import com.bookStors.WookieBooks.exception.FileStorageException;
 import com.bookStors.WookieBooks.model.Book;
 import com.bookStors.WookieBooks.repository.BooksRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +44,7 @@ public class BooksServices {
     //getting a book record by using the method findById() of CrudRepository
     public Book getBooksById(int bookid) {
         Book book = new Book();
-        return  booksRepository.findById(bookid).get();
+        return booksRepository.findById(bookid).get();
     }
 
     //delete a book by using the method deleteById() of CrudRepository
@@ -51,14 +53,21 @@ public class BooksServices {
     }
 
     //saving a specific record by using the method save() of CrudRepository
-    public Book addBook(String book,MultipartFile coverImage) throws IOException {
-        String newFileName=storeFile(coverImage);
-        Book bookJson=mappingToJson(book, newFileName);
+    public Book addBook(String book, MultipartFile coverImage) throws IOException {
+
+        if(coverImage!=null){
+            String newFileName = storeFile(coverImage);
+            Book bookJson = mappingToJson(book);
+            bookJson.setCoverImageName(newFileName);
+            booksRepository.save(bookJson);
+            return bookJson;
+        }else{
+        Book bookJson = mappingToJson(book);
         booksRepository.save(bookJson);
-        return bookJson;
+        return bookJson;}
     }
 
-    public String storeFile(MultipartFile coverImage) throws IOException {
+    public String storeFile(MultipartFile coverImage) {
         UUID uuid = UUID.randomUUID();
         String originalFileName = StringUtils.cleanPath(coverImage.getOriginalFilename()).toLowerCase();
         String[] splitFileName = originalFileName.split("\\.", 2);
@@ -66,7 +75,11 @@ public class BooksServices {
 
         Path copyLocation = Paths
                 .get(uploadDir + File.separator + newFileName);
-        Files.copy(coverImage.getInputStream(), copyLocation, StandardCopyOption.REPLACE_EXISTING);
+        try {
+            Files.copy(coverImage.getInputStream(), copyLocation, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new FileStorageException("Could not store file " + splitFileName + ". Please try again!", e);
+        }
         return newFileName;
     }
 
@@ -76,17 +89,13 @@ public class BooksServices {
         booksRepository.save(book);
     }
 
-    //get uploaded image
-    public void getImage() {
-    }
 
     //mapping String To JSON Book object
-    public Book mappingToJson(String book, String coverImageName) {
+    public Book mappingToJson(String book) {
         Book bookJson = new Book();
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             bookJson = objectMapper.readValue(book, Book.class);
-            bookJson.setCoverImageName(coverImageName);
         } catch (IOException err) {
             System.out.printf("Error", err.toString());
         }
@@ -94,10 +103,20 @@ public class BooksServices {
     }
 
     //download coverImage
-    public  Resource download(String coverImageName) throws MalformedURLException {
-        Path copyLocation = Paths
-                .get(uploadDir + File.separator + coverImageName);
-        Resource resource = new UrlResource(copyLocation.toUri());
-        return resource;
+    public Resource download(String coverImageName) {
+        try {
+            Path copyLocation = Paths
+                    .get(uploadDir + File.separator + coverImageName);
+            Resource resource = null;
+            resource = new UrlResource(copyLocation.toUri());
+            if (resource.exists()) {
+                return resource;
+            } else {
+                throw new FileNotFoundException("File not found " + coverImageName);
+            }
+        } catch (MalformedURLException e) {
+            throw new FileNotFoundException("File not found " + coverImageName, e);
+
+        }
     }
 }

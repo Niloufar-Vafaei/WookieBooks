@@ -6,11 +6,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -36,7 +37,7 @@ public class BooksController {
     // @RequestParams extract values from the query string, @PathVariables extract values from the URI path
     @GetMapping("/books/{bookid}")
     private ResponseEntity<Book> getBook(@PathVariable("bookid") int bookid) {
-        return ResponseEntity.ok().body( booksServices.getBooksById(bookid));
+        return ResponseEntity.ok().body(booksServices.getBooksById(bookid));
     }
 
     //create a delete mapping that deletes a specific book
@@ -64,7 +65,7 @@ public class BooksController {
         Resource resource = booksServices.download(coverImageName);
         String contentType = null;
         try {
-           contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
+            contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
         } catch (IOException ex) {
             logger.info("Could not determine file type.");
         }
