@@ -42,31 +42,52 @@ public class BooksServices {
     }
 
     //getting a book record by using the method findById() of CrudRepository
-    public Book getBooksById(int bookid) {
+    public Book findById(Long bookid) {
         Book book = new Book();
         return booksRepository.findById(bookid).get();
     }
 
     //delete a book by using the method deleteById() of CrudRepository
-    public void deleteBook(int bookid) {
+    public void deleteBook(Long bookid) {
         booksRepository.deleteById(bookid);
     }
 
     //saving a specific record by using the method save() of CrudRepository
-    public Book addBook(String book, MultipartFile coverImage) throws IOException {
+    public Book addBook(String book, MultipartFile coverImage) {
 
-        if(coverImage!=null){
+        if (coverImage != null) {
             String newFileName = storeFile(coverImage);
             Book bookJson = mappingToJson(book);
             bookJson.setCoverImageName(newFileName);
             booksRepository.save(bookJson);
             return bookJson;
-        }else{
-        Book bookJson = mappingToJson(book);
-        booksRepository.save(bookJson);
-        return bookJson;}
+        } else {
+            Book bookJson = mappingToJson(book);
+            booksRepository.save(bookJson);
+            return bookJson;
+        }
     }
 
+    //update a record
+    public Book update(Book book, MultipartFile coverImage) {
+            String newFileName = storeFile(coverImage);
+            book.setCoverImageName(newFileName);
+            booksRepository.save(book);
+            return book;
+    }
+
+    //mapping String To JSON Book object
+    public Book mappingToJson(String book) {
+        Book bookJson = new Book();
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            bookJson = objectMapper.readValue(book, Book.class);
+        } catch (IOException err) {
+            System.out.printf("Error", err.toString());
+        }
+        return bookJson;
+    }
+    //store cover image
     public String storeFile(MultipartFile coverImage) {
         UUID uuid = UUID.randomUUID();
         String originalFileName = StringUtils.cleanPath(coverImage.getOriginalFilename()).toLowerCase();
@@ -81,25 +102,6 @@ public class BooksServices {
             throw new FileStorageException("Could not store file " + splitFileName + ". Please try again!", e);
         }
         return newFileName;
-    }
-
-
-    //update a record
-    public void update(Book book) {
-        booksRepository.save(book);
-    }
-
-
-    //mapping String To JSON Book object
-    public Book mappingToJson(String book) {
-        Book bookJson = new Book();
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            bookJson = objectMapper.readValue(book, Book.class);
-        } catch (IOException err) {
-            System.out.printf("Error", err.toString());
-        }
-        return bookJson;
     }
 
     //download coverImage

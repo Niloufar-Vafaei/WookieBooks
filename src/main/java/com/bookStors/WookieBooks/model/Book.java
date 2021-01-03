@@ -11,7 +11,7 @@ public class Book {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Column
-    private int bookId;
+    private Long bookId;
     @Column
     private String title;
     @Column
@@ -23,11 +23,11 @@ public class Book {
     @Column
     private float price;
 
-    public int getBookId() {
+    public Long getBookId() {
         return bookId;
     }
 
-    public void setBookId(int bookId) {
+    public void setBookId(Long bookId) {
         this.bookId = bookId;
     }
 

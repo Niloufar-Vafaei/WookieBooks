@@ -2,6 +2,7 @@ package com.bookStors.WookieBooks.controller;
 
 import com.bookStors.WookieBooks.model.Book;
 import com.bookStors.WookieBooks.service.BooksServices;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.List;
+import java.util.Map;
+
 
 
 //Mark class as controller
@@ -36,32 +38,62 @@ public class BooksController {
     //create a get mapping that retrieves  the detail of a specific book
     // @RequestParams extract values from the query string, @PathVariables extract values from the URI path
     @GetMapping("/books/{bookid}")
-    private ResponseEntity<Book> getBook(@PathVariable("bookid") int bookid) {
-        return ResponseEntity.ok().body(booksServices.getBooksById(bookid));
+    private ResponseEntity<Book> getBook(@PathVariable("bookid") Long bookid) {
+        return ResponseEntity.ok().body(booksServices.findById(bookid));
     }
 
     //create a delete mapping that deletes a specific book
     @DeleteMapping("/books/{bookid}")
-    private void deleteBook(@PathVariable("bookid") int bookid) {
+    private void deleteBook(@PathVariable("bookid") Long bookid) {
         booksServices.deleteBook(bookid);
     }
 
     //creating post mapping that post the book detail in the database
     @PostMapping("/books")
-    private ResponseEntity<Book> saveBook(@RequestPart String book, @RequestParam(value = "coverImage", required = false) MultipartFile coverImage) throws IOException {
+    private ResponseEntity<Book> saveBook(@RequestPart String book,
+                                          @RequestParam(value = "coverImage", required = false) MultipartFile coverImage) throws IOException {
         return ResponseEntity.ok().body(booksServices.addBook(book, coverImage));
     }
 
-    //creating put mapping that updates the book detail
-    @PutMapping("/book")
-    private Book update(@RequestBody Book book) {
-        booksServices.update(book);
-        return book;
+    //creating put mapping that updates the book detail, get whole object of book
+    @PutMapping("/book/{id}")
+    private ResponseEntity<Book> updateFull(@RequestParam Map<String, String> book,
+                                            @RequestParam(value = "coverImage", required = false) MultipartFile coverImage,
+                                            @PathVariable Long id) {
+        ObjectMapper bookMapper = new ObjectMapper();
+        Book bookPojo = bookMapper.convertValue(book, Book.class);
+        bookPojo.setBookId(id);
+        return ResponseEntity.ok().body(booksServices.update(bookPojo, coverImage));
+    }
+
+    //creating patch mapping that updates the book detail
+    @PatchMapping("/book/{id}")
+    private ResponseEntity<Book> updateDetails(@RequestParam Map<String, String> book,
+                                               @RequestParam(value = "coverImage", required = false) MultipartFile coverImage,
+                                               @PathVariable Long id) {
+        Book bookPojo = booksServices.findById(id);
+        if (book.get("id") != null) {
+            bookPojo.setBookId(id);
+        }
+        if (book.get("title") != null) {
+            bookPojo.setTitle(book.get("title"));
+        }
+        if (book.get("description") != null) {
+            bookPojo.setDescription(book.get("description"));
+        }
+        if (book.get("author") != null) {
+            bookPojo.setAuthor(book.get("author"));
+        }
+        if (book.get("price") != null) {
+            bookPojo.setPrice(Float.parseFloat(book.get("price")));
+        }
+
+        return ResponseEntity.ok().body(booksServices.update(bookPojo, coverImage));
     }
 
     //creating Get mapping that download the book coverImage
     @GetMapping("/book/download/{coverImageName}")
-    private ResponseEntity<Resource> download(@PathVariable("coverImageName") String coverImageName, HttpServletRequest request) throws MalformedURLException {
+    private ResponseEntity<Resource> download(@PathVariable("coverImageName") String coverImageName, HttpServletRequest request) {
         Resource resource = booksServices.download(coverImageName);
         String contentType = null;
         try {
