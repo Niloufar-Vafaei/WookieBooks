@@ -70,10 +70,12 @@ public class BooksServices {
 
     //update a record
     public Book update(Book book, MultipartFile coverImage) {
+        if (coverImage != null) {
             String newFileName = storeFile(coverImage);
             book.setCoverImageName(newFileName);
-            booksRepository.save(book);
-            return book;
+        }
+        booksRepository.save(book);
+        return book;
     }
 
     //mapping String To JSON Book object
@@ -87,6 +89,7 @@ public class BooksServices {
         }
         return bookJson;
     }
+
     //store cover image
     public String storeFile(MultipartFile coverImage) {
         UUID uuid = UUID.randomUUID();
